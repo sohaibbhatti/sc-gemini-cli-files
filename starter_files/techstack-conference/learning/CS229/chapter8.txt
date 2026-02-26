@@ -1,0 +1,907 @@
+111
+Complications/Subtlety in the Implementation. All the deep learn-
+ing packages or implementations put the data points in the rows of a data
+matrix. (If the data point itself is a matrix or tensor, then the data are con-
+centrated along the zero-th dimension.) However, most of the deep learning
+papers use a similar notation to these notes where the data points are treated
+as column vectors.8 There is a simple conversion to deal with the mismatch:
+in the implementation, all the columns become row vectors, row vectors be-
+come column vectors, all the matrices are transposed, and the orders of the
+matrix multiplications are ﬂipped. In the example above, using the row ma-
+jor convention, the data matrix is X ∈ R3×d, the ﬁrst layer weight matrix
+has dimensionality d × m (instead of m × d as in the two layer neural net
+section), and the bias vector b[1] ∈ R1×m. The computation for the hidden
+activation becomes
+Z[1] = XW [1] + b[1] ∈ R3×m (7.84)
+8The instructor suspects that this is mostly because in mathematics we naturally mul-
+tiply a matrix to a vector on the left hand side.
+
+Part III
+Generalization and
+regularization
+112
+
+Chapter 8
+Generalization
+This chapter discusses tools to analyze and understand the generaliza-
+tion of machine learning models, i.e, their performances on unseen test
+examples. Recall that for supervised learning problems, given a train-
+ing dataset {(x(i), y(i))}n
+i=1, we typically learn a model hθ by minimizing a
+loss/cost function J(θ), which encourages hθ to ﬁt the data. E.g., when
+the loss function is the least square loss (aka mean squared error), we have
+J(θ) = 1
+n
+∑n
+i=1(y(i) − hθ(x(i)))2. This loss function for training purposes is
+oftentimes referred to as the training loss/error/cost.
+However, minimizing the training loss is not our ultimate goal—it is
+merely our approach towards the goal of learning a predictive model. The
+most important evaluation metric of a model is the loss on unseen test exam-
+ples, which is oftentimes referred to as the test error. Formally, we sample a
+test example ( x, y) from the so-called test distribution D, and measure the
+model’s error on it, by, e.g., the mean squared error, ( hθ(x) − y)2. The ex-
+pected loss/error over the randomness of the test example is called the test
+loss/error,1
+L(θ) = E(x,y)∼D[(y − hθ(x))2] (8.1)
+Note that the measurement of the error involves computing the expectation,
+and in practice, it can be approximated by the average error on many sampled
+test examples, which are referred to as the test dataset. Note that the key
+diﬀerence here between training and test datasets is that the test examples
+1In theoretical and statistical literature, we oftentimes call the uniform distribution
+over the training set {(x(i),y (i))}n
+i=1, denoted by ˆD, an empirical distribution, and call
+D the population distribution. Partly because of this, the training loss is also referred
+to as the empirical loss/risk/error, and the test loss is also referred to as the population
+loss/risk/error.
+113
+
+114
+are unseen, in the sense that the training procedure has not used the test
+examples. In classical statistical learning settings, the training examples are
+also drawn from the same distribution as the test distribution D, but still
+the test examples are unseen by the learning procedure whereas the training
+examples are seen. 2
+Because of this key diﬀerence between training and test datasets, even
+if they are both drawn from the same distribution D, the test error is not
+necessarily always close to the training error. 3 As a result, successfully min-
+imizing the training error may not always lead to a small test error. We
+typically say the model overﬁts the data if the model predicts accurately on
+the training dataset but doesn’t generalize well to other test examples, that
+is, if the training error is small but the test error is large. We say the model
+underﬁts the data if the training error is relatively large 4 (and in this case,
+typically the test error is also relatively large.)
+This chapter studies how the test error is inﬂuenced by the learning pro-
+cedure, especially the choice of model parameterizations. We will decompose
+the test error into “bias” and “variance” terms and study how each of them is
+aﬀected by the choice of model parameterizations and their tradeoﬀs. Using
+the bias-variance tradeoﬀ, we will discuss when overﬁtting and underﬁtting
+will occur and be avoided. We will also discuss the double descent phe-
+nomenon in Section 8.2 and some classical theoretical results in Section 8.3.
+2These days, researchers have increasingly been more interested in the setting with
+“domain shift”, that is, the training distribution and test distribution are diﬀerent.
+3the diﬀerence between test error and training error is often referred to as the gener-
+alization gap. The term generalization error in some literature means the test error, and
+in some other literature means the generalization gap.
+4e.g., larger than the intrinsic noise level of the data in regression problems.
+
+115
+8.1 Bias-variance tradeoﬀ
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training dataset
+training data
+ground truth h *
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+test dataset
+test data
+ground truth h *
+Figure 8.1: A running example of training and test dataset for this section.
+As an illustrating example, we consider the following training dataset and
+test dataset, which are also shown in Figure 8.1. The training inputsx(i)’s are
+randomly chosen and the outputs y(i) are generated by y(i) = h⋆(x(i)) + ξ(i)
+where the function h⋆(·) is a quadratic function and is shown in Figure 8.1
+as the solid line, and ξ(i) is the a observation noise assumed to be generated
+from ∼ N(0, σ2). A test example ( x, y) also has the same input-output
+relationship y = h⋆(x) +ξ where ξ ∼ N(0, σ2). It’s impossible to predict the
+noise ξ, and therefore essentially our goal is to recover the function h⋆(·).
+We will consider the test error of learning various types of models. When
+talking about linear regression, we discussed the problem of whether to ﬁt
+a “simple” model such as the linear “ y = θ0 + θ1x,” or a more “complex”
+model such as the polynomial “ y = θ0 + θ1x + · · · θ5x5.”
+We start with ﬁtting a linear model, as shown in Figure 8.2. The best
+ﬁtted linear model cannot predict y from x accurately even on the training
+dataset, let alone on the test dataset. This is because the true relationship
+between y and x is not linear—any linear model is far away from the true
+function h⋆(·). As a result, the training error is large and this is a typical
+situation of underﬁtting.
+
+116
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit linear model
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+test data
+best fit linear model
+Figure 8.2: The best ﬁt linear model has large training and test errors.
+The issue cannot be mitigated with more training examples—even with
+a very large amount of, or even inﬁnite training examples, the best ﬁtted
+linear model is still inaccurate and fails to capture the structure of the data
+(Figure 8.3). Even if the noise is not present in the training data, the issue
+still occurs (Figure 8.4). Therefore, the fundamental bottleneck here is the
+linear model family’s inability to capture the structure in the data—linear
+models cannot represent the true quadratic function h⋆—, but not the lack of
+the data. Informally, we deﬁne the bias of a model to be the test error even
+if we were to ﬁt it to a very (say, inﬁnitely) large training dataset. Thus, in
+this case, the linear model suﬀers from large bias, and underﬁts (i.e., fails to
+capture structure exhibited by) the data.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+fitting linear models on a large dataset
+training data
+ground truth h *
+best fit linear model
+Figure 8.3: The best ﬁt linear
+model on a much larger dataset
+still has a large training error.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+fitting linear models on a noiseless dataset
+training data
+ground truth h *
+best fit linear model
+Figure 8.4: The best ﬁt linear
+model on a noiseless dataset also
+has a large training/test error.
+Next, we ﬁt a 5th-degree polynomial to the data. Figure 8.5 shows that
+it fails to learn a good model either. However, the failure pattern is diﬀerent
+from the linear model case. Speciﬁcally, even though the learnt 5th-degree
+
+117
+polynomial did a very good job predicting y(i)’s from x(i)’s for training ex-
+amples, it does not work well on test examples (Figure 8.5). In other words,
+the model learnt from the training set does not generalize well to other test
+examples—the test error is high. Contrary to the behavior of linear models,
+the bias of the 5-th degree polynomials is small—if we were to ﬁt a 5-th de-
+gree polynomial to an extremely large dataset, the resulting model would be
+close to a quadratic function and be accurate (Figure 8.6). This is because
+the family of 5-th degree polynomials contains all the quadratic functions
+(setting θ5 = θ4 = θ3 = 0 results in a quadratic function), and, therefore,
+5-th degree polynomials are in principle capable of capturing the structure
+of the data.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit 5-th degree model
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+test data
+ground truth h *
+best fit 5-th degree model
+Figure 8.5: Best ﬁt 5-th degree polynomial has zero training error, but still
+has a large test error and does not recover the the ground truth. This is a
+classic situation of overﬁtting.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit 5-th degree model
+ground truth h *
+fitting 5-th degree model on large dataset
+Figure 8.6: The best ﬁt 5-th degree polynomial on a huge dataset nearly
+recovers the ground-truth—suggesting that the culprit in Figure 8.5 is the
+variance (or lack of data) but not bias.
+The failure of ﬁtting 5-th degree polynomials can be captured by another
+
+118
+component of the test error, called variance of a model ﬁtting procedure.
+Speciﬁcally, when ﬁtting a 5-th degree polynomial as in Figure 8.7, there is a
+large risk that we’re ﬁtting patterns in the data that happened to be present
+in our small, ﬁnite training set, but that do not reﬂect the wider pattern of
+the relationship between x and y. These “spurious” patterns in the training
+set are (mostly) due to the observation noise ξ(i), and ﬁtting these spurious
+patters results in a model with large test error. In this case, we say the model
+has a large variance.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit 5-th degree model
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit 5-th degree model
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit 5-th degree model
+fitting 5-th degree model on different datasets
+Figure 8.7: The best ﬁt 5-th degree models on three diﬀerent datasets gen-
+erated from the same distribution behave quite diﬀerently, suggesting the
+existence of a large variance.
+The variance can be intuitively (and mathematically, as shown in Sec-
+tion 8.1.1) characterized by the amount of variations across models learnt
+on multiple diﬀerent training datasets (drawn from the same underlying dis-
+tribution). The “spurious patterns” are speciﬁc to the randomness of the
+noise (and inputs) in a particular dataset, and thus are diﬀerent across mul-
+tiple training datasets. Therefore, overﬁtting to the “spurious patterns” of
+multiple datasets should result in very diﬀerent models. Indeed, as shown
+in Figure 8.7, the models learned on the three diﬀerent training datasets are
+quite diﬀerent, overﬁtting to the “spurious patterns” of each datasets.
+Often, there is a tradeoﬀ between bias and variance. If our model is too
+“simple” and has very few parameters, then it may have large bias (but small
+variance), and it typically may suﬀer from underﬁttng. If it is too “complex”
+and has very many parameters, then it may suﬀer from large variance (but
+have smaller bias), and thus overﬁtting. See Figure 8.8 for a typical tradeoﬀ
+between bias and variance.
+
+119
+Model Complexity
+Error
+Bias2
+Variance
+Test Error (= Bias2 +Variance)Optimal Tradeoff
+Figure 8.8: An illustration of the typical bias-variance tradeoﬀ.
+As we will see formally in Section 8.1.1, the test error can be decomposed
+as a summation of bias and variance. This means that the test error will
+have a convex curve as the model complexity increases, and in practice we
+should tune the model complexity to achieve the best tradeoﬀ. For instance,
+in the example above, ﬁtting a quadratic function does better than either of
+the extremes of a ﬁrst or a 5-th degree polynomial, as shown in Figure 8.9.
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+training data
+best fit quadratic model
+0.0 0.2 0.4 0.6 0.8 1.0
+x
+0.0
+0.5
+1.0
+1.5y
+test data
+best fit quadratic model
+ground truth h *
+Figure 8.9: Best ﬁt quadratic model has small training and test error because
+quadratic model achieves a better tradeoﬀ.
+Interestingly, the bias-variance tradeoﬀ curves or the test error curves
+do not universally follow the shape in Figure 8.8, at least not universally
+when the model complexity is simply measured by the number of parameters.
+(We will discuss the so-called double descent phenomenon in Section 8.2.)
+Nevertheless, the principle of bias-variance tradeoﬀ is perhaps still the ﬁrst
+resort when analyzing and predicting the behavior of test errors.
+
+120
+8.1.1 A mathematical decomposition (for regression)
+To formally state the bias-variance tradeoﬀ for regression problems, we con-
+sider the following setup (which is an extension of the beginning paragraph
+of Section 8.1).
+• Draw a training dataset S = {x(i), y(i)}n
+i=1 such that y(i) = h⋆(x(i)) +ξ(i)
+where ξ(i) ∈ N(0, σ2).
+• Train a model on the dataset S, denoted by ˆhS.
+• Take a test example ( x, y) such that y = h⋆(x) + ξ where ξ ∼ N(0, σ2),
+and measure the expected test error (averaged over the random draw of
+the training set S and the randomness of ξ)56
+MSE(x) = ES,ξ[(y − hS(x))2] (8.2)
+We will decompose the MSE into a bias and variance term. We start by
+stating a following simple mathematical tool that will be used twice below.
+Claim 8.1.1: Suppose A and B are two independent real random variables
+and E[A] = 0. Then, E[(A + B)2] = E[A2] + E[B2].
+As a corollary, because a random variable A is independent with a con-
+stant c, when E[A] = 0, we have E[(A + c)2] = E[A2] + c2.
+The proof of the claim follows from expanding the square: E[(A + B)2] =
+E[A2] +E[B2] + 2E[AB] = E[A2] +E[B2]. Here we used the independence to
+show that E[AB] = E[A]E[B] = 0.
+Using Claim 8.1.1 with A = ξ and B = h⋆(x) − ˆhS(x), we have
+MSE(x) = E[(y − hS(x))2] = E[(ξ + (h⋆(x) − hS(x)))2] (8.3)
+= E[ξ2] + E[(h⋆(x) − hS(x))2] (by Claim 8.1.1)
+= σ2 + E[(h⋆(x) − hS(x))2] (8.4)
+Then, let’s deﬁne havg(x) = ES[hS(x)] as the “average model”—the model
+obtained by drawing an inﬁnite number of datasets, training on them, and
+averaging their predictions on x. Note that havg is a hypothetical model for
+analytical purposes that can not be obtained in reality (because we don’t
+5For simplicity, the test inputx is considered to be ﬁxed here, but the same conceptual
+message holds when we average over the choice of x’s.
+6The subscript under the expectation symbol is to emphasize the variables that are
+considered as random by the expectation operation.
+
+121
+have inﬁnite number of datasets). It turns out that for many cases, havg
+is (approximately) equal to the the model obtained by training on a single
+dataset with inﬁnite samples. Thus, we can also intuitively interpret havg this
+way, which is consistent with our intuitive deﬁnition of bias in the previous
+subsection.
+We can further decompose MSE(x) by letting c = h⋆(x)−havg(x) (which is
+a constant that does not depend on the choice of S!) and A = havg(x)−hS(x)
+in the corollary part of Claim 8.1.1:
+MSE(x) = σ2 + E[(h⋆(x) − hS(x))2] (8.5)
+= σ2 + (h⋆(x) − havg(x))2 + E[(havg − hS(x))2] (8.6)
+= σ2
+
+unavoidable
++ (h⋆(x) − havg(x))2
+  
+≜ bias2
++ var(hS(x))  
+≜ variance
+(8.7)
+We call the second term the bias (square) and the third term the variance. As
+discussed before, the bias captures the part of the error that are introduced
+due to the lack of expressivity of the model. Recall that havg can be thought
+of as the best possible model learned even with inﬁnite data. Thus, the bias is
+not due to the lack of data, but is rather caused by that the family of models
+fundamentally cannot approximate the h⋆. For example, in the illustrating
+example in Figure 8.2, because any linear model cannot approximate the
+true quadratic function h⋆, neither can havg, and thus the bias term has to
+be large.
+The variance term captures how the random nature of the ﬁnite dataset
+introduces errors in the learned model. It measures the sensitivity of the
+learned model to the randomness in the dataset. It often decreases as the
+size of the dataset increases.
+There is nothing we can do about the ﬁrst term σ2 as we can not predict
+the noise ξ by deﬁnition.
+Finally, we note that the bias-variance decomposition for classiﬁcation
+is much less clear than for regression problems. There have been several
+proposals, but there is as yet no agreement on what is the “right” and/or
+the most useful formalism.
+8.2 The double descent phenomenon
+Model-wise double descent. Recent works have demonstrated that the
+test error can present a “double descent” phenomenon in a range of machine
+
+122
+learning models including linear models and deep neural networks. 7 The
+conventional wisdom, as discussed in Section 8.1, is that as we increase the
+model complexity, the test error ﬁrst decreases and then increases, as illus-
+trated in Figure 8.8. However, in many cases, we empirically observe that
+the test error can have a second descent—it ﬁrst decreases, then increases
+to a peak around when the model size is large enough to ﬁt all the training
+data very well, and then decreases again in the so-called overparameterized
+regime, where the number of parameters is larger than the number of data
+points. See Figure 8.10 for an illustration of the typical curves of test errors
+against model complexity (measured by the number of parameters). To some
+extent, the overparameterized regime with the second descent is considered as
+new to the machine learning community—partly because lightly-regularized,
+overparameterized models are only extensively used in the deep learning era.
+A practical implication of the phenomenon is that one should not hold back
+from scaling into and experimenting with over-parametrized models because
+the test error may well decrease again to a level even smaller than the previ-
+ous lowest point. Actually, in many cases, larger overparameterized models
+always lead to a better test performance (meaning there won’t be a second
+ascent after the second descent).
+# parameters
+test error
+typically when # parameters
+is sufficient to fit the data
+classical regime:
+bias-variance tradeoff
+modern regime:
+over-parameterization
+Figure 8.10: A typical model-wise double descent phenomenon. As the num-
+ber of parameters increases, the test error ﬁrst decreases when the number of
+parameters is smaller than the training data. Then in the overparameterized
+regime, the test error decreases again.
+7The discovery of the phenomenon perhaps dates back to Opper [1995, 2001], and has
+been recently popularized by Belkin et al. [2020], Hastie et al. [2019], etc.
+
+123
+Sample-wise double descent. A priori, we would expect that more
+training examples always lead to smaller test errors—more samples give
+strictly more information for the algorithm to learn from. However, recent
+work [Nakkiran, 2019] observes that the test error is not monotonically de-
+creasing as we increase the sample size. Instead, as shown in Figure 8.11, the
+test error decreases, and then increases and peaks around when the number
+of examples (denoted by n) is similar to the number of parameters (denoted
+by d), and then decreases again. We refer to this as the sample-wise dou-
+ble descent phenomenon. To some extent, sample-wise double descent and
+model-wise double descent are essentially describing similar phenomena—the
+test error is peaked when n ≈ d.
+Explanation and mitigation strategy. The sample-wise double descent,
+or, in particular, the peak of test error at n ≈ d, suggests that the existing
+training algorithms evaluated in these experiments are far from optimal when
+n ≈ d. We will be better oﬀ by tossing away some examples and run the
+algorithms with a smaller sample size to steer clear of the peak. In other
+words, in principle, there are other algorithms that can achieve smaller test
+error when n ≈ d, but the algorithms evaluated in these experiments fail to
+do so. The sub-optimality of the learning procedure appears to be the culprit
+of the peak in both sample-wise and model-wise double descent.
+Indeed, with an optimally-tuned regularization (which will be discussed
+more in Section 9), the test error in the n ≈ d regime can be dramatically
+improved, and the model-wise and sample-wise double descent are both mit-
+igated. See Figure 8.11.
+The intuition above only explains the peak in the model-wise and sample-
+wise double descent, but does not explain the second descent in the model-
+wise double descent—why overparameterized models are able to generalize
+so well. The theoretical understanding of overparameterized models is an ac-
+tive research area with many recent advances. A typical explanation is that
+the commonly-used optimizers such as gradient descent provide an implicit
+regularization eﬀect (which will be discussed in more detail in Section 9.2).
+In other words, even in the overparameterized regime and with an unregular-
+ized loss function, the model is still implicitly regularized, and thus exhibits
+a better test performance than an arbitrary solution that ﬁts the data. For
+example, for linear models, when n ≪ d, the gradient descent optimizer with
+zero initialization ﬁnds the minimum norm solution that ﬁts the data (in-
+stead of an arbitrary solution that ﬁts the data), and the minimum norm reg-
+ularizer turns out to be a suﬃciently good for the overparameterized regime
+(but it’s not a good regularizer when n ≈ d, resulting in the peak of test
+
+124
+error).
+0 200 400 600 800 1000
+Num Samples
+0.00
+0.25
+0.50
+0.75
+1.00
+1.25
+1.50
+1.75
+2.00
+T est Error
+T est Error vs. # Samples
+T est Error
+Figure 8.11: Left: The sample-wise double descent phenomenon for linear
+models. Right: The sample-wise double descent with diﬀerent regularization
+strength for linear models. Using the optimal regularization parameter λ
+(optimally tuned for each n, shown in green solid curve) mitigates double
+descent. Setup: The data distribution of ( x, y) is x ∼ N (0, Id) and y ∼
+x⊤β + N (0, σ2) where d = 500, σ = 0.5 and ∥β∥2 = 1.8
+Finally, we also remark that the double descent phenomenon has been
+mostly observed when the model complexity is measured by the number of
+parameters. It is unclear if and when the number of parameters is the best
+complexity measure of a model. For example, in many situations, the norm
+of the models is used as a complexity measure. As shown in Figure 8.12
+right, for a particular linear case, if we plot the test error against the norm
+of the learnt model, the double descent phenomenon no longer occurs. This
+is partly because the norm of the learned model is also peaked around n ≈ d
+(See Figure 8.12 (middle) or Belkin et al. [2019], Mei and Montanari [2022],
+and discussions in Section 10.8 of James et al. [2021]). For deep neural
+networks, the correct complexity measure is even more elusive. The study of
+double descent phenomenon is an active research topic.
+8The ﬁgure is reproduced from Figure 1 of Nakkiran et al. [2020]. Similar phenomenon
+are also observed in Hastie et al. [2022], Mei and Montanari [2022]
+
+125
+0 250 500 750 1000
+# parameters
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+test error
+test error vs. # params
+0 200 400 600 800 1000
+# parameters
+0
+10
+20
+30
+40
+norm
+norm vs. # params
+0 10 20 30 40
+norm
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+test error
+d=n
+# parameters
+test error vs. norm
+0
+200
+400
+600
+800
+1000
+Figure 8.12: Left: The double descent phenomenon, where the number of pa-
+rameters is used as the model complexity. Middle: The norm of the learned
+model is peaked around n ≈ d. Right: The test error against the norm of
+the learnt model. The color bar indicate the number of parameters and the
+arrows indicates the direction of increasing model size. Their relationship
+are closer to the convention wisdom than to a double descent. Setup: We
+consider a linear regression with a ﬁxed dataset of size n = 500. The input
+x is a random ReLU feature on Fashion-MNIST, and output y ∈ R10 is the
+one-hot label. This is the same setting as in Section 5.2 of Nakkiran et al.
+[2020].
+
+126
+8.3 Sample complexity bounds (optional
+readings)
+8.3.1 Preliminaries
+In this set of notes, we begin our foray into learning theory. Apart from
+being interesting and enlightening in its own right, this discussion will also
+help us hone our intuitions and derive rules of thumb about how to best
+apply learning algorithms in diﬀerent settings. We will also seek to answer
+a few questions: First, can we make formal the bias/variance tradeoﬀ that
+was just discussed? This will also eventually lead us to talk about model
+selection methods, which can, for instance, automatically decide what order
+polynomial to ﬁt to a training set. Second, in machine learning it’s really
+generalization error that we care about, but most learning algorithms ﬁt their
+models to the training set. Why should doing well on the training set tell us
+anything about generalization error? Speciﬁcally, can we relate error on the
+training set to generalization error? Third and ﬁnally, are there conditions
+under which we can actually prove that learning algorithms will work well?
+We start with two simple but very useful lemmas.
+Lemma. (The union bound). Let A1, A2, . . . , Ak be k diﬀerent events (that
+may not be independent). Then
+P (A1 ∪ · · · ∪ Ak) ≤ P (A1) + . . . + P (Ak).
+In probability theory, the union bound is usually stated as an axiom
+(and thus we won’t try to prove it), but it also makes intuitive sense: The
+probability of any one of k events happening is at most the sum of the
+probabilities of the k diﬀerent events.
+Lemma. (Hoeﬀding inequality) Let Z1, . . . , Zn be n independent and iden-
+tically distributed (iid) random variables drawn from a Bernoulli( φ) distri-
+bution. I.e., P (Zi = 1) = φ, and P (Zi = 0) = 1 − φ. Let ˆφ = (1/n) ∑n
+i=1 Zi
+be the mean of these random variables, and let any γ > 0 be ﬁxed. Then
+P (|φ − ˆφ| > γ) ≤ 2 exp(−2γ2n)
+This lemma (which in learning theory is also called theChernoﬀ bound)
+says that if we take ˆφ—the average of n Bernoulli(φ) random variables—to
+be our estimate of φ, then the probability of our being far from the true value
+is small, so long as n is large. Another way of saying this is that if you have
+a biased coin whose chance of landing on heads is φ, then if you toss it n
+
+127
+times and calculate the fraction of times that it came up heads, that will be
+a good estimate of φ with high probability (if n is large).
+Using just these two lemmas, we will be able to prove some of the deepest
+and most important results in learning theory.
+To simplify our exposition, let’s restrict our attention to binary classiﬁca-
+tion in which the labels are y ∈ {0, 1}. Everything we’ll say here generalizes
+to other problems, including regression and multi-class classiﬁcation.
+We assume we are given a training setS = {(x(i), y(i)); i = 1, . . . , n} of size
+n, where the training examples (x(i), y(i)) are drawn iid from some probability
+distribution D. For a hypothesis h, we deﬁne the training error (also called
+the empirical risk or empirical error in learning theory) to be
+ˆε(h) = 1
+n
+n∑
+i=1
+1{h(x(i)) ̸= y(i)}.
+This is just the fraction of training examples that h misclassiﬁes. When we
+want to make explicit the dependence of ˆε(h) on the training set S, we may
+also write this a ˆεS(h). We also deﬁne the generalization error to be
+ε(h) = P(x,y)∼D(h(x) ̸= y).
+I.e. this is the probability that, if we now draw a new example ( x, y) from
+the distribution D, h will misclassify it.
+Note that we have assumed that the training data was drawn from the
+same distribution D with which we’re going to evaluate our hypotheses (in
+the deﬁnition of generalization error). This is sometimes also referred to as
+one of the PAC assumptions.9
+Consider the setting of linear classiﬁcation, and let hθ(x) = 1{θT x ≥ 0}.
+What’s a reasonable way of ﬁtting the parameters θ? One approach is to try
+to minimize the training error, and pick
+ˆθ = arg min
+θ
+ˆε(hθ).
+We call this processempirical risk minimization(ERM), and the resulting
+hypothesis output by the learning algorithm is ˆh = hˆθ. We think of ERM
+as the most “basic” learning algorithm, and it will be this algorithm that we
+9PAC stands for “probably approximately correct,” which is a framework and set of
+assumptions under which numerous results on learning theory were proved. Of these, the
+assumption of training and testing on the same distribution, and the assumption of the
+independently drawn training examples, were the most important.
+
+128
+focus on in these notes. (Algorithms such as logistic regression can also be
+viewed as approximations to empirical risk minimization.)
+In our study of learning theory, it will be useful to abstract away from
+the speciﬁc parameterization of hypotheses and from issues such as whether
+we’re using a linear classiﬁer. We deﬁne the hypothesis class H used by a
+learning algorithm to be the set of all classiﬁers considered by it. For linear
+classiﬁcation, H = {hθ : hθ(x) = 1 {θT x ≥ 0}, θ ∈ Rd+1} is thus the set of
+all classiﬁers over X (the domain of the inputs) where the decision boundary
+is linear. More broadly, if we were studying, say, neural networks, then we
+could let H be the set of all classiﬁers representable by some neural network
+architecture.
+Empirical risk minimization can now be thought of as a minimization over
+the class of functions H, in which the learning algorithm picks the hypothesis:
+ˆh = arg min
+h∈H
+ˆε(h)
+8.3.2 The case of ﬁnite H
+Let’s start by considering a learning problem in which we have a ﬁnite hy-
+pothesis class H = {h1, . . . , hk} consisting of k hypotheses. Thus, H is just a
+set of k functions mapping from X to {0, 1}, and empirical risk minimization
+selects ˆh to be whichever of these k functions has the smallest training error.
+We would like to give guarantees on the generalization error of ˆh. Our
+strategy for doing so will be in two parts: First, we will show that ˆ ε(h) is a
+reliable estimate of ε(h) for all h. Second, we will show that this implies an
+upper-bound on the generalization error of ˆh.
+Take any one, ﬁxed, hi ∈ H . Consider a Bernoulli random variable Z
+whose distribution is deﬁned as follows. We’re going to sample ( x, y) ∼ D .
+Then, we set Z = 1 {hi(x) ̸= y}. I.e., we’re going to draw one example,
+and let Z indicate whether hi misclassiﬁes it. Similarly, we also deﬁne Zj =
+1{hi(x(j)) ̸= y(j)}. Since our training set was drawn iid from D, Z and the
+Zj’s have the same distribution.
+We see that the misclassiﬁcation probability on a randomly drawn
+example—that is, ε(h)—is exactly the expected value of Z (and Zj). More-
+over, the training error can be written
+ˆε(hi) = 1
+n
+n∑
+j=1
+Zj.
+Thus, ˆε(hi) is exactly the mean of the n random variables Zj that are drawn
+iid from a Bernoulli distribution with mean ε(hi). Hence, we can apply the
+
+129
+Hoeﬀding inequality, and obtain
+P (|ε(hi) − ˆε(hi)| > γ) ≤ 2 exp(−2γ2n).
+This shows that, for our particular hi, training error will be close to
+generalization error with high probability, assuming n is large. But we don’t
+just want to guarantee thatε(hi) will be close to ˆε(hi) (with high probability)
+for just only one particular hi. We want to prove that this will be true
+simultaneously for all h ∈ H. To do so, let Ai denote the event that |ε(hi) −
+ˆε(hi)| > γ . We’ve already shown that, for any particular Ai, it holds true
+that P (Ai) ≤ 2 exp(−2γ2n). Thus, using the union bound, we have that
+P (∃ h ∈ H.|ε(hi) − ˆε(hi)| > γ) = P (A1 ∪ · · · ∪ Ak)
+≤
+k∑
+i=1
+P (Ai)
+≤
+k∑
+i=1
+2 exp(−2γ2n)
+= 2 k exp(−2γ2n)
+If we subtract both sides from 1, we ﬁnd that
+P (¬∃ h ∈ H.|ε(hi) − ˆε(hi)| > γ) = P (∀h ∈ H.|ε(hi) − ˆε(hi)| ≤ γ)
+≥ 1 − 2k exp(−2γ2n)
+(The “ ¬” symbol means “not.”) So, with probability at least 1 −
+2k exp(−2γ2n), we have that ε(h) will be within γ of ˆε(h) for all h ∈ H .
+This is called a uniform convergence result, because this is a bound that
+holds simultaneously for all (as opposed to just one) h ∈ H.
+In the discussion above, what we did was, for particular values of n and
+γ, give a bound on the probability that for some h ∈ H , |ε(h) − ˆε(h)| > γ .
+There are three quantities of interest here: n, γ, and the probability of error;
+we can bound either one in terms of the other two.
+For instance, we can ask the following question: Given γ and some δ > 0,
+how large must n be before we can guarantee that with probability at least
+1 − δ, training error will be within γ of generalization error? By setting
+δ = 2 k exp(−2γ2n) and solving for n, [you should convince yourself this is
+the right thing to do!], we ﬁnd that if
+n ≥ 1
+2γ2 log 2k
+δ ,
+
+130
+then with probability at least 1 − δ, we have that |ε(h) − ˆε(h)| ≤ γ for all
+h ∈ H. (Equivalently, this shows that the probability that |ε(h) − ˆε(h)| > γ
+for some h ∈ H is at most δ.) This bound tells us how many training
+examples we need in order make a guarantee. The training set size n that
+a certain method or algorithm requires in order to achieve a certain level of
+performance is also called the algorithm’s sample complexity.
+The key property of the bound above is that the number of training
+examples needed to make this guarantee is only logarithmic in k, the number
+of hypotheses in H. This will be important later.
+Similarly, we can also hold n and δ ﬁxed and solve for γ in the previous
+equation, and show [again, convince yourself that this is right!] that with
+probability 1 − δ, we have that for all h ∈ H,
+|ˆε(h) − ε(h)| ≤
+√
+1
+2n log 2k
+δ .
+Now, let’s assume that uniform convergence holds, i.e., that|ε(h)−ˆε(h)| ≤
+γ for all h ∈ H. What can we prove about the generalization of our learning
+algorithm that picked ˆh = arg minh∈H ˆε(h)?
+Deﬁne h∗ = arg minh∈H ε(h) to be the best possible hypothesis inH. Note
+that h∗ is the best that we could possibly do given that we are using H, so
+it makes sense to compare our performance to that of h∗. We have:
+ε(ˆh) ≤ ˆε(ˆh) + γ
+≤ ˆε(h∗) + γ
+≤ ε(h∗) + 2γ
+The ﬁrst line used the fact that |ε(ˆh)−ˆε(ˆh)| ≤ γ (by our uniform convergence
+assumption). The second used the fact that ˆh was chosen to minimize ˆε(h),
+and hence ˆε(ˆh) ≤ ˆε(h) for all h, and in particular ˆε(ˆh) ≤ ˆε(h∗). The third
+line used the uniform convergence assumption again, to show that ˆ ε(h∗) ≤
+ε(h∗) + γ. So, what we’ve shown is the following: If uniform convergence
+occurs, then the generalization error of ˆh is at most 2 γ worse than the best
+possible hypothesis in H!
+Let’s put all this together into a theorem.
+Theorem. Let |H| = k, and let any n, δ be ﬁxed. Then with probability at
+least 1 − δ, we have that
+ε(ˆh) ≤
+(
+min
+h∈H
+ε(h)
+)
++ 2
+√
+1
+2n log 2k
+δ .
+
+131
+This is proved by letting γ equal the √· term, using our previous argu-
+ment that uniform convergence occurs with probability at least 1 − δ, and
+then noting that uniform convergence implies ε(h) is at most 2 γ higher than
+ε(h∗) = minh∈H ε(h) (as we showed previously).
+This also quantiﬁes what we were saying previously saying about the
+bias/variance tradeoﬀ in model selection. Speciﬁcally, suppose we have some
+hypothesis class H, and are considering switching to some much larger hy-
+pothesis class H′ ⊇ H . If we switch to H′, then the ﬁrst term min h ε(h)
+can only decrease (since we’d then be taking a min over a larger set of func-
+tions). Hence, by learning using a larger hypothesis class, our “bias” can
+only decrease. However, if k increases, then the second 2 √· term would also
+increase. This increase corresponds to our “variance” increasing when we use
+a larger hypothesis class.
+By holding γ and δ ﬁxed and solving for n like we did before, we can also
+obtain the following sample complexity bound:
+Corollary. Let |H| = k, and let any δ, γ be ﬁxed. Then for ε(ˆh) ≤
+minh∈H ε(h) + 2γ to hold with probability at least 1 − δ, it suﬃces that
+n ≥ 1
+2γ2 log 2k
+δ
+= O
+( 1
+γ2 log k
+δ
+)
+,
+8.3.3 The case of inﬁnite H
+We have proved some useful theorems for the case of ﬁnite hypothesis classes.
+But many hypothesis classes, including any parameterized by real numbers
+(as in linear classiﬁcation) actually contain an inﬁnite number of functions.
+Can we prove similar results for this setting?
+Let’s start by going through something that is not the “right” argument.
+Better and more general arguments exist , but this will be useful for honing
+our intuitions about the domain.
+Suppose we have an H that is parameterized by d real numbers. Since we
+are using a computer to represent real numbers, and IEEE double-precision
+ﬂoating point (double’s in C) uses 64 bits to represent a ﬂoating point num-
+ber, this means that our learning algorithm, assuming we’re using double-
+precision ﬂoating point, is parameterized by 64 d bits. Thus, our hypothesis
+class really consists of at most k = 264d diﬀerent hypotheses. From the Corol-
+lary at the end of the previous section, we therefore ﬁnd that, to guarantee
+
+132
+ε(ˆh) ≤ ε(h∗)+2 γ, with to hold with probability at least 1 − δ, it suﬃces that
+n ≥ O
+(
+1
+γ2 log 264d
+δ
+)
+= O
+(
+d
+γ2 log 1
+δ
+)
+= Oγ,δ(d). (The γ, δ subscripts indicate
+that the last big- O is hiding constants that may depend on γ and δ.) Thus,
+the number of training examples needed is at most linear in the parameters
+of the model.
+The fact that we relied on 64-bit ﬂoating point makes this argument not
+entirely satisfying, but the conclusion is nonetheless roughly correct: If what
+we try to do is minimize training error, then in order to learn “well” using a
+hypothesis class that has d parameters, generally we’re going to need on the
+order of a linear number of training examples in d.
+(At this point, it’s worth noting that these results were proved for an al-
+gorithm that uses empirical risk minimization. Thus, while the linear depen-
+dence of sample complexity on d does generally hold for most discriminative
+learning algorithms that try to minimize training error or some approxima-
+tion to training error, these conclusions do not always apply as readily to
+discriminative learning algorithms. Giving good theoretical guarantees on
+many non-ERM learning algorithms is still an area of active research.)
+The other part of our previous argument that’s slightly unsatisfying is
+that it relies on the parameterization of H. Intuitively, this doesn’t seem like
+it should matter: We had written the class of linear classiﬁers as hθ(x) =
+1{θ0 + θ1x1 + · · · θdxd ≥ 0}, with n + 1 parameters θ0, . . . , θd. But it could
+also be written hu,v(x) = 1 {(u2
+0 − v2
+0) + (u2
+1 − v2
+1)x1 + · · ·(u2
+d − v2
+d)xd ≥ 0}
+with 2d + 2 parameters ui, vi. Yet, both of these are just deﬁning the same
+H: The set of linear classiﬁers in d dimensions.
+To derive a more satisfying argument, let’s deﬁne a few more things.
+Given a set S = {x(i), . . . , x(D)} (no relation to the training set) of points
+x(i) ∈ X , we say that H shatters S if H can realize any labeling on S.
+I.e., if for any set of labels {y(1), . . . , y(D)}, there exists some h ∈ H so that
+h(x(i)) = y(i) for all i = 1, . . .D.
+Given a hypothesis class H, we then deﬁne its Vapnik-Chervonenkis
+dimension, written VC(H), to be the size of the largest set that is shattered
+by H. (If H can shatter arbitrarily large sets, then VC( H) = ∞.)
+For instance, consider the following set of three points:
+
+133
+/0 /1
+/0 /1
+/0 /1
+x
+x1
+2
+Can the set H of linear classiﬁers in two dimensions (h(x) = 1{θ0 +θ1x1 +
+θ2x2 ≥ 0}) can shatter the set above? The answer is yes. Speciﬁcally, we
+see that, for any of the eight possible labelings of these points, we can ﬁnd a
+linear classiﬁer that obtains “zero training error” on them:
+x
+x1
+2 x
+x1
+2 x
+x1
+2 x
+x1
+2
+x
+x1
+2 x
+x1
+2 x
+x1
+2 x
+x1
+2
+Moreover, it is possible to show that there is no set of 4 points that this
+hypothesis class can shatter. Thus, the largest set that H can shatter is of
+size 3, and hence VC( H) = 3.
+Note that the VC dimension of H here is 3 even though there may be
+sets of size 3 that it cannot shatter. For instance, if we had a set of three
+points lying in a straight line (left ﬁgure), then there is no way to ﬁnd a linear
+separator for the labeling of the three points shown below (right ﬁgure):

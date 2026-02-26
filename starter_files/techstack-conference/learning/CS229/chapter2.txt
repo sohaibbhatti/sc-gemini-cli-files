@@ -1,0 +1,470 @@
+19
+Here, the w(i)’s are non-negative valued weights. Intuitively, if w(i) is large
+for a particular value of i, then in picking θ, we’ll try hard to make ( y(i) −
+θT x(i))2 small. If w(i) is small, then the ( y(i) − θT x(i))2 error term will be
+pretty much ignored in the ﬁt.
+A fairly standard choice for the weights is 4
+w(i) = exp
+(
+−(x(i) − x)2
+2τ 2
+)
+Note that the weights depend on the particular point x at which we’re trying
+to evaluate x. Moreover, if |x(i) − x| is small, then w(i) is close to 1; and
+if |x(i) − x| is large, then w(i) is small. Hence, θ is chosen giving a much
+higher “weight” to the (errors on) training examples close to the query point
+x. (Note also that while the formula for the weights takes a form that is
+cosmetically similar to the density of a Gaussian distribution, the w(i)’s do
+not directly have anything to do with Gaussians, and in particular the w(i)
+are not random variables, normally distributed or otherwise.) The parameter
+τ controls how quickly the weight of a training example falls oﬀ with distance
+of its x(i) from the query point x; τ is called the bandwidth parameter, and
+is also something that you’ll get to experiment with in your homework.
+Locally weighted linear regression is the ﬁrst example we’re seeing of a
+non-parametric algorithm. The (unweighted) linear regression algorithm
+that we saw earlier is known as a parametric learning algorithm, because
+it has a ﬁxed, ﬁnite number of parameters (the θi’s), which are ﬁt to the
+data. Once we’ve ﬁt the θi’s and stored them away, we no longer need to
+keep the training data around to make future predictions. In contrast, to
+make predictions using locally weighted linear regression, we need to keep
+the entire training set around. The term “non-parametric” (roughly) refers
+to the fact that the amount of stuﬀ we need to keep in order to represent the
+hypothesis h grows linearly with the size of the training set.
+4Ifx is vector-valued, this is generalized to bew(i) = exp(−(x(i) −x)T (x(i) −x)/(2τ 2)),
+or w(i) = exp(−(x(i) −x)T Σ−1(x(i) −x)/(2τ 2)), for an appropriate choice of τ or Σ.
+
+Chapter 2
+Classiﬁcation and logistic
+regression
+Let’s now talk about the classiﬁcation problem. This is just like the regression
+problem, except that the values y we now want to predict take on only
+a small number of discrete values. For now, we will focus on the binary
+classiﬁcation problem in which y can take on only two values, 0 and 1.
+(Most of what we say here will also generalize to the multiple-class case.)
+For instance, if we are trying to build a spam classiﬁer for email, then x(i)
+may be some features of a piece of email, and y may be 1 if it is a piece
+of spam mail, and 0 otherwise. 0 is also called the negative class, and 1
+the positive class, and they are sometimes also denoted by the symbols “-”
+and “+.” Given x(i), the corresponding y(i) is also called the label for the
+training example.
+2.1 Logistic regression
+We could approach the classiﬁcation problem ignoring the fact that y is
+discrete-valued, and use our old linear regression algorithm to try to predict
+y given x. However, it is easy to construct examples where this method
+performs very poorly. Intuitively, it also doesn’t make sense for hθ(x) to take
+values larger than 1 or smaller than 0 when we know that y ∈ {0, 1}.
+To ﬁx this, let’s change the form for our hypotheseshθ(x). We will choose
+hθ(x) = g(θT x) = 1
+1 + e−θT x ,
+where
+g(z) = 1
+1 + e−z
+20
+
+21
+is called the logistic function or the sigmoid function . Here is a plot
+showing g(z):
+−5 −4 −3 −2 −1 0 1 2 3 4 5
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1
+z
+g(z)
+Notice that g(z) tends towards 1 as z → ∞ , and g(z) tends towards 0 as
+z → −∞. Moreover, g(z), and hence also h(x), is always bounded between
+0 and 1. As before, we are keeping the convention of letting x0 = 1, so that
+θT x = θ0 + ∑d
+j=1 θjxj.
+For now, let’s take the choice ofg as given. Other functions that smoothly
+increase from 0 to 1 can also be used, but for a couple of reasons that we’ll see
+later (when we talk about GLMs, and when we talk about generative learning
+algorithms), the choice of the logistic function is a fairly natural one. Before
+moving on, here’s a useful property of the derivative of the sigmoid function,
+which we write as g′:
+g′(z) = d
+dz
+1
+1 + e−z
+= 1
+(1 + e−z)2
+(
+e−z)
+= 1
+(1 + e−z) ·
+(
+1 − 1
+(1 + e−z)
+)
+= g(z)(1 − g(z)).
+So, given the logistic regression model, how do we ﬁt θ for it? Following
+how we saw least squares regression could be derived as the maximum like-
+lihood estimator under a set of assumptions, let’s endow our classiﬁcation
+model with a set of probabilistic assumptions, and then ﬁt the parameters
+via maximum likelihood.
+
+22
+Let us assume that
+P (y = 1 | x; θ) = hθ(x)
+P (y = 0 | x; θ) = 1 − hθ(x)
+Note that this can be written more compactly as
+p(y | x; θ) = (hθ(x))y (1 − hθ(x))1−y
+Assuming that the n training examples were generated independently, we
+can then write down the likelihood of the parameters as
+L(θ) = p(⃗ y| X; θ)
+=
+n∏
+i=1
+p(y(i) | x(i); θ)
+=
+n∏
+i=1
+(
+hθ(x(i))
+)y(i) (
+1 − hθ(x(i))
+)1−y(i)
+As before, it will be easier to maximize the log likelihood:
+ℓ(θ) = log L(θ) =
+n∑
+i=1
+y(i) log h(x(i)) + (1 − y(i)) log(1 − h(x(i))) (2.1)
+How do we maximize the likelihood? Similar to our derivation in the case
+of linear regression, we can use gradient ascent. Written in vectorial notation,
+our updates will therefore be given by θ := θ + α∇θℓ(θ). (Note the positive
+rather than negative sign in the update formula, since we’re maximizing,
+rather than minimizing, a function now.) Let’s start by working with just
+one training example ( x, y), and take derivatives to derive the stochastic
+gradient ascent rule:
+∂
+∂θj
+ℓ(θ) =
+(
+y 1
+g(θT x) − (1 − y) 1
+1 − g(θT x)
+) ∂
+∂θj
+g(θT x)
+=
+(
+y 1
+g(θT x) − (1 − y) 1
+1 − g(θT x)
+)
+g(θT x)(1 − g(θT x)) ∂
+∂θj
+θT x
+=
+(
+y(1 − g(θT x)) − (1 − y)g(θT x)
+)
+xj
+= (y − hθ(x)) xj (2.2)
+
+23
+Above, we used the fact that g′(z) = g(z)(1 − g(z)). This therefore gives us
+the stochastic gradient ascent rule
+θj := θj + α
+(
+y(i) − hθ(x(i))
+)
+x(i)
+j
+If we compare this to the LMS update rule, we see that it looks identical; but
+this is not the same algorithm, because hθ(x(i)) is now deﬁned as a non-linear
+function of θT x(i). Nonetheless, it’s a little surprising that we end up with
+the same update rule for a rather diﬀerent algorithm and learning problem.
+Is this coincidence, or is there a deeper reason behind this? We’ll answer this
+when we get to GLM models.
+Remark 2.1.1: An alternative notational viewpoint of the same loss func-
+tion is also useful, especially for Section 7.1 where we study nonlinear models.
+Let ℓlogistic : R × {0, 1} → R≥0 be the logistic loss deﬁned as
+ℓlogistic(t, y) ≜ y log(1 + exp(−t)) + (1 − y) log(1 + exp(t)) . (2.3)
+One can verify by plugging in hθ(x) = 1 /(1 + e−θ⊤x) that the negative log-
+likelihood (the negation of ℓ(θ) in equation (2.1)) can be re-written as
+−ℓ(θ) = ℓlogistic(θ⊤x, y). (2.4)
+Oftentimes θ⊤x or t is called the logit. Basic calculus gives us that
+∂ℓlogistic(t, y)
+∂t = y − exp(−t)
+1 + exp(−t) + (1 − y) 1
+1 + exp(−t) (2.5)
+= 1/(1 + exp(−t)) − y. (2.6)
+Then, using the chain rule, we have that
+∂
+∂θj
+ℓ(θ) = − ∂ℓlogistic(t, y)
+∂t · ∂t
+∂θj
+(2.7)
+= (y − 1/(1 + exp(−t))) · xj = (y − hθ(x))xj , (2.8)
+which is consistent with the derivation in equation (2.2). We will see this
+viewpoint can be extended nonlinear models in Section 7.1.
+2.2 Digression: the perceptron learning algo-
+rithm
+We now digress to talk brieﬂy about an algorithm that’s of some historical
+interest, and that we will also return to later when we talk about learning
+
+24
+theory. Consider modifying the logistic regression method to “force” it to
+output values that are either 0 or 1 or exactly. To do so, it seems natural to
+change the deﬁnition of g to be the threshold function:
+g(z) =
+{ 1 if z ≥ 0
+0 if z < 0
+If we then let hθ(x) = g(θT x) as before but using this modiﬁed deﬁnition of
+g, and if we use the update rule
+θj := θj + α
+(
+y(i) − hθ(x(i))
+)
+x(i)
+j .
+then we have the perceptron learning algorithn .
+In the 1960s, this “perceptron” was argued to be a rough model for how
+individual neurons in the brain work. Given how simple the algorithm is, it
+will also provide a starting point for our analysis when we talk about learning
+theory later in this class. Note however that even though the perceptron may
+be cosmetically similar to the other algorithms we talked about, it is actually
+a very diﬀerent type of algorithm than logistic regression and least squares
+linear regression; in particular, it is diﬃcult to endow the perceptron’s predic-
+tions with meaningful probabilistic interpretations, or derive the perceptron
+as a maximum likelihood estimation algorithm.
+2.3 Multi-class classiﬁcation
+Consider a classiﬁcation problem in which the response variabley can take on
+any one of k values, so y ∈ {1, 2, . . . , k}. For example, rather than classifying
+emails into the two classes spam or not-spam—which would have been a
+binary classiﬁcation problem—we might want to classify them into three
+classes, such as spam, personal mails, and work-related mails. The label /
+response variable is still discrete, but can now take on more than two values.
+We will thus model it as distributed according to a multinomial distribution.
+In this case, p(y | x; θ) is a distribution over k possible discrete outcomes
+and is thus a multinomial distribution. Recall that a multinomial distribu-
+tion involves k numbers φ1, . . . , φk specifying the probability of each of the
+outcomes. Note that these numbers must satisfy ∑k
+i=1 φi = 1. We will de-
+sign a parameterized model that outputs φ1, . . . , φk satisfying this constraint
+given the input x.
+We introduce k groups of parameters θ1, . . . , θk, each of them being a
+vector in Rd. Intuitively, we would like to use θ⊤
+1 x, . . . , θ⊤
+k x to represent
+
+25
+φ1, . . . , φk, the probabilities P (y = 1 | x; θ), . . . , P(y = k | x; θ). However,
+there are two issues with such a direct approach. First, θ⊤
+j x is not neces-
+sarily within [0 , 1]. Second, the summation of θ⊤
+j x’s is not necessarily 1.
+Thus, instead, we will use the softmax function to turn ( θ⊤
+1 x, · · · , θ⊤
+k x) into
+a probability vector with nonnegative entries that sum up to 1.
+Deﬁne the softmax function softmax : Rk → Rk as
+softmax(t1, . . . , tk) =
+
+
+exp(t1)∑k
+j=1 exp(tj)
+...
+exp(tk)∑k
+j=1 exp(tj)
+
+ . (2.9)
+The inputs to the softmax function, the vector t here, are often called log-
+its. Note that by deﬁnition, the output of the softmax function is always a
+probability vector whose entries are nonnegative and sum up to 1.
+Let ( t1, . . . , tk) = ( θ⊤
+1 x, · · · , θ⊤
+k x). We apply the softmax function to
+(t1, . . . , tk), and use the output as the probabilitiesP (y = 1 | x; θ), . . . , P(y =
+k | x; θ). We obtain the following probabilistic model:
+
+
+P (y = 1 | x; θ)
+...
+P (y = k | x; θ)
+
+ = softmax(t1, · · · , tk) =
+
+
+exp(θ⊤
+1 x)∑k
+j=1 exp(θ⊤
+j x)
+...
+exp(θ⊤
+k x)∑k
+j=1 exp(θ⊤
+j x)
+
+ . (2.10)
+For notational convenience, we will let φi = exp(ti)∑k
+j=1 exp(tj). More succinctly, the
+equation above can be written as:
+P (y = i | x; θ) = φi = exp(ti)∑k
+j=1 exp(tj)
+= exp(θ⊤
+i x)∑k
+j=1 exp(θ⊤
+j x)
+. (2.11)
+Next, we compute the negative log-likelihood of a single example ( x, y).
+− log p(y | x, θ) = − log
+(
+exp(ty)∑k
+j=1 exp(tj)
+)
+= − log
+(
+exp(θ⊤
+y x)
+∑k
+j=1 exp(θ⊤
+j x)
+)
+(2.12)
+Thus, the loss function, the negative log-likelihood of the training data, is
+given as
+ℓ(θ) =
+n∑
+i=1
+− log
+(
+exp(θ⊤
+y(i)x(i))
+∑k
+j=1 exp(θ⊤
+j x(i))
+)
+. (2.13)
+
+26
+It’s convenient to deﬁne the cross-entropy loss ℓce : Rk × {1, . . . , k} → R≥0,
+which modularizes in the complex equation above: 1
+ℓce((t1, . . . , tk), y) = − log
+(
+exp(ty)∑k
+j=1 exp(tj)
+)
+. (2.14)
+With this notation, we can simply rewrite equation (2.13) as
+ℓ(θ) =
+n∑
+i=1
+ℓce((θ⊤
+1 x(i), . . . , θ⊤
+k x(i)), y(i)) . (2.15)
+Moreover, conveniently, the cross-entropy loss also has a simple gradient. Let
+t = (t1, . . . , tk), and recall φi = exp(ti)∑k
+j=1 exp(tj). By basic calculus, we can derive
+∂ℓce(t, y)
+∂ti
+= φi − 1{y = i} , (2.16)
+where 1 {·} is the indicator function, that is, 1 {y = i} = 1 if y = i, and
+1{y = i} = 0 if y ̸= i. Alternatively, in vectorized notations, we have the
+following form which will be useful for Chapter 7:
+∂ℓce(t, y)
+∂t = φ − ey , (2.17)
+where es ∈ Rk is the s-th natural basis vector (where the s-th entry is 1 and
+all other entries are zeros.) Using Chain rule, we have that
+∂ℓce((θ⊤
+1 x, . . . , θ⊤
+k x), y)
+∂θi
+= ∂ℓ(t, y)
+∂ti
+· ∂ti
+∂θi
+= (φi − 1{y = i}) · x . (2.18)
+Therefore, the gradient of the loss with respect to the part of parameter θi is
+∂ℓ(θ)
+∂θi
+=
+n∑
+j=1
+(φ(j)
+i − 1{y(j) = i}) · x(j) , (2.19)
+where φ(j)
+i = exp(θ⊤
+i x(j))∑k
+s=1 exp(θ⊤s x(j)) is the probability that the model predicts item i
+for example x(j). With the gradients above, one can implement (stochastic)
+gradient descent to minimize the loss function ℓ(θ).
+1There are some ambiguity in the naming here. Some people call the cross-entropy loss
+the function that maps the probability vector (the φ in our language) and label y to the
+ﬁnal real number, and call our version of cross-entropy loss softmax-cross-entropy loss.
+We choose our current naming convention because it’s consistent with the naming of most
+modern deep learning library such as PyTorch and Jax.
+
+27
+1 1.5 2 2.5 3 3.5 4 4.5 5
+−10
+0
+10
+20
+30
+40
+50
+60
+x
+f(x)
+1 1.5 2 2.5 3 3.5 4 4.5 5
+−10
+0
+10
+20
+30
+40
+50
+60
+x
+f(x)
+1 1.5 2 2.5 3 3.5 4 4.5 5
+−10
+0
+10
+20
+30
+40
+50
+60
+x
+f(x)
+2.4 Another algorithm for maximizing ℓ(θ)
+Returning to logistic regression with g(z) being the sigmoid function, let’s
+now talk about a diﬀerent algorithm for maximizing ℓ(θ).
+To get us started, let’s consider Newton’s method for ﬁnding a zero of a
+function. Speciﬁcally, suppose we have some function f : R ↦→ R, and we
+wish to ﬁnd a value of θ so that f(θ) = 0. Here, θ ∈ R is a real number.
+Newton’s method performs the following update:
+θ := θ − f(θ)
+f′(θ) .
+This method has a natural interpretation in which we can think of it as
+approximating the function f via a linear function that is tangent to f at
+the current guess θ, solving for where that linear function equals to zero, and
+letting the next guess for θ be where that linear function is zero.
+Here’s a picture of the Newton’s method in action:
+In the leftmost ﬁgure, we see the function f plotted along with the line
+y = 0. We’re trying to ﬁnd θ so that f(θ) = 0; the value ofθ that achieves this
+is about 1.3. Suppose we initialized the algorithm with θ = 4.5. Newton’s
+method then ﬁts a straight line tangent to f at θ = 4.5, and solves for the
+where that line evaluates to 0. (Middle ﬁgure.) This give us the next guess
+for θ, which is about 2.8. The rightmost ﬁgure shows the result of running
+one more iteration, which the updates θ to about 1.8. After a few more
+iterations, we rapidly approach θ = 1.3.
+Newton’s method gives a way of getting to f(θ) = 0. What if we want to
+use it to maximize some function ℓ? The maxima of ℓ correspond to points
+where its ﬁrst derivative ℓ′(θ) is zero. So, by letting f(θ) = ℓ′(θ), we can use
+the same algorithm to maximize ℓ, and we obtain update rule:
+θ := θ − ℓ′(θ)
+ℓ′′(θ) .
+(Something to think about: How would this change if we wanted to use
+Newton’s method to minimize rather than maximize a function?)
