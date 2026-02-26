@@ -9,7 +9,8 @@ import {
   loadCatalog, 
   loadSponsors, 
   loadRegistration, 
-  loadTravelAndHotels 
+  loadTravelAndHotels,
+  loadSocials 
 } from '../lazyLoad';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -37,6 +38,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'Sponsors', href: '/sponsors', prefetch: loadSponsors },
     { name: 'Registration', href: '/registration', prefetch: loadRegistration },
     { name: 'Travel', href: '/travel', prefetch: loadTravelAndHotels },
+    { name: 'Social Kit', href: '/socials', prefetch: loadSocials },
   ];
 
   return (
@@ -162,9 +164,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <BrainCircuit className="h-6 w-6 text-slate-400" />
               <span className="text-slate-500 font-semibold">TechStack Conference</span>
             </div>
-            <p className="text-slate-400 text-sm">
-              © 2026 Fictitious AI Conference. All rights reserved.
-            </p>
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <Link 
+                to="/socials" 
+                onMouseEnter={() => loadSocials()}
+                className="text-slate-400 text-sm hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
+                Social Kit
+              </Link>
+              <p className="text-slate-400 text-sm">
+                © 2026 Fictitious AI Conference. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>

@@ -15,12 +15,14 @@ grading submissions to avoid bias.
 *   **Speaker Prep:** Host a brief "know before you go" call with speakers a week
 before. Ensure they know the aspect ratio of the screens (16:9 vs 4:3), where to meet
 us, and what to expect.
+*   **Hyper-Personalized Tracks:** Break down broad topics into role-specific tracks, like "AI for DevOps" or "Security for Product Managers."
 *   **Session Formats:** Mix it up. We want a mix of keynotes, panels, lightning
 talks (5-10 min), and workshops to keep energy levels high.
 
 ## 3. Attendee Experience
 *   **Registration:** Do it before the event. QR code scanning is standard. We want
 to avoid "swag pickup" at the check-in desk; do that separately to reduce bottlenecks.
+*   **Smart Networking:** Use AI tools to suggest specific people for attendees to meet based on their interests.
 *   **Wi-Fi:** This is critical. Must secure a dedicated network for staff/speakers
 separate from attendees.
 *   **Inclusivity:**
@@ -33,13 +35,16 @@ Water stations should be mixed throughout the venue.
 *   **Signage:** You can't have too much signage. Floor decals are great for navigation.
 *   **Power:** Attendees always need to charge devices. Provide power strips
 in lounge areas, not just session rooms.
+*   **Sustainability:** Go paperless. Use digital programs and recyclable or e-ink badges.
 *   **Run of Show:** Have a minute-by-minute schedule for the AV team and
 stage managers.
 
 ## 5. Marketing & Engagement
 *   **Website:** The schedule and session catalog should be the easiest thing to find.
 *   **Social Media:** Create a unique hashtag and promote it early so you can engage with attendees and track socials.
+*   **Year-Round Community:** Start conversations three months early on Slack or Discord to build momentum.
 
 ## 6. Post-Event
 *   **Feedback:** Send a survey within 24 hours while the experience is fresh. Keep it short.
+*   **Quick Highlights:** Use AI to generate instant session summaries so people can catch up on what they missed.
 *   **Content:** Upload slides and recordings as fast as possible (ideally within a week).

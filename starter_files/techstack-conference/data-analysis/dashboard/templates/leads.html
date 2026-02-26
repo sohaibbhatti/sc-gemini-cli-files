@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search by Company, Title, or Country...">
+</div>
+
+<table id="leadsTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Company</th>
+            <th>Title</th>
+            <th>Country</th>
+            <th>Segment</th>
+            <th>Score</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lead in leads %}
+        <tr class="lead-row" 
+            data-company="{{ lead.company|lower }}" 
+            data-title="{{ lead.title|lower }}" 
+            data-country="{{ lead.country|lower }}"
+            data-name="{{ lead.first_name|lower }} {{ lead.last_name|lower }}">
+            <td>{{ lead.first_name }} {{ lead.last_name }}</td>
+            <td>{{ lead.company }}</td>
+            <td>{{ lead.title }}</td>
+            <td>{{ lead.country }}</td>
+            <td><span class="badge badge-{{ lead.priority_segment|lower }}">{{ lead.priority_segment }}</span></td>
+            <td>{{ lead.lead_score }}</td>
+            <td><a href="{{ url_for('profile', email=lead.email) }}" class="btn">View Profile</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('.lead-row');
+    
+    rows.forEach(row => {
+        let text = row.dataset.name + ' ' + row.dataset.company + ' ' + row.dataset.title + ' ' + row.dataset.country;
+        if (text.includes(filter)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

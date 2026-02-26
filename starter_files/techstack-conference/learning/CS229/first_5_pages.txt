@@ -1,0 +1,118 @@
+CS229 Lecture Notes
+Andrew Ng and Tengyu Ma
+June 11, 2023
+
+Contents
+I Supervised learning 5
+1 Linear regression 8
+1.1 LMS algorithm . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+1.2 The normal equations . . . . . . . . . . . . . . . . . . . . . . . 13
+1.2.1 Matrix derivatives . . . . . . . . . . . . . . . . . . . . . 13
+1.2.2 Least squares revisited . . . . . . . . . . . . . . . . . . 14
+1.3 Probabilistic interpretation . . . . . . . . . . . . . . . . . . . . 15
+1.4 Locally weighted linear regression (optional reading) . . . . . . 17
+2 Classiﬁcation and logistic regression 20
+2.1 Logistic regression . . . . . . . . . . . . . . . . . . . . . . . . 20
+2.2 Digression: the perceptron learning algorithm . . . . . . . . . 23
+2.3 Multi-class classiﬁcation . . . . . . . . . . . . . . . . . . . . . 24
+2.4 Another algorithm for maximizing ℓ(θ) . . . . . . . . . . . . . 27
+3 Generalized linear models 29
+3.1 The exponential family . . . . . . . . . . . . . . . . . . . . . . 29
+3.2 Constructing GLMs . . . . . . . . . . . . . . . . . . . . . . . . 31
+3.2.1 Ordinary least squares . . . . . . . . . . . . . . . . . . 32
+3.2.2 Logistic regression . . . . . . . . . . . . . . . . . . . . 33
+4 Generative learning algorithms 34
+4.1 Gaussian discriminant analysis . . . . . . . . . . . . . . . . . . 35
+4.1.1 The multivariate normal distribution . . . . . . . . . . 35
+4.1.2 The Gaussian discriminant analysis model . . . . . . . 38
+4.1.3 Discussion: GDA and logistic regression . . . . . . . . 40
+4.2 Naive bayes (Option Reading) . . . . . . . . . . . . . . . . . . 41
+4.2.1 Laplace smoothing . . . . . . . . . . . . . . . . . . . . 44
+4.2.2 Event models for text classiﬁcation . . . . . . . . . . . 46
+1
+
+CS229 Spring 20223 2
+5 Kernel methods 48
+5.1 Feature maps . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+5.2 LMS (least mean squares) with features . . . . . . . . . . . . . 49
+5.3 LMS with the kernel trick . . . . . . . . . . . . . . . . . . . . 49
+5.4 Properties of kernels . . . . . . . . . . . . . . . . . . . . . . . 53
+6 Support vector machines 59
+6.1 Margins: intuition . . . . . . . . . . . . . . . . . . . . . . . . . 59
+6.2 Notation (option reading) . . . . . . . . . . . . . . . . . . . . 61
+6.3 Functional and geometric margins (option reading) . . . . . . 61
+6.4 The optimal margin classiﬁer (option reading) . . . . . . . . . 63
+6.5 Lagrange duality (optional reading) . . . . . . . . . . . . . . . 65
+6.6 Optimal margin classiﬁers: the dual form (option reading) . . 68
+6.7 Regularization and the non-separable case (optional reading) . 72
+6.8 The SMO algorithm (optional reading) . . . . . . . . . . . . . 73
+6.8.1 Coordinate ascent . . . . . . . . . . . . . . . . . . . . . 74
+6.8.2 SMO . . . . . . . . . . . . . . . . . . . . . . . . . . . . 75
+II Deep learning 79
+7 Deep learning 80
+7.1 Supervised learning with non-linear models . . . . . . . . . . . 80
+7.2 Neural networks . . . . . . . . . . . . . . . . . . . . . . . . . . 84
+7.3 Modules in Modern Neural Networks . . . . . . . . . . . . . . 92
+7.4 Backpropagation . . . . . . . . . . . . . . . . . . . . . . . . . 98
+7.4.1 Preliminaries on partial derivatives . . . . . . . . . . . 99
+7.4.2 General strategy of backpropagation . . . . . . . . . . 102
+7.4.3 Backward functions for basic modules . . . . . . . . . . 105
+7.4.4 Back-propagation for MLPs . . . . . . . . . . . . . . . 107
+7.5 Vectorization over training examples . . . . . . . . . . . . . . 109
+III Generalization and regularization 112
+8 Generalization 113
+8.1 Bias-variance tradeoﬀ . . . . . . . . . . . . . . . . . . . . . . . 115
+8.1.1 A mathematical decomposition (for regression) . . . . . 120
+8.2 The double descent phenomenon . . . . . . . . . . . . . . . . . 121
+8.3 Sample complexity bounds (optional readings) . . . . . . . . . 126
+
+CS229 Spring 20223 3
+8.3.1 Preliminaries . . . . . . . . . . . . . . . . . . . . . . . 126
+8.3.2 The case of ﬁnite H . . . . . . . . . . . . . . . . . . . . 128
+8.3.3 The case of inﬁnite H . . . . . . . . . . . . . . . . . . 131
+9 Regularization and model selection 135
+9.1 Regularization . . . . . . . . . . . . . . . . . . . . . . . . . . . 135
+9.2 Implicit regularization eﬀect (optional reading) . . . . . . . . . 137
+9.3 Model selection via cross validation . . . . . . . . . . . . . . . 139
+9.4 Bayesian statistics and regularization . . . . . . . . . . . . . . 142
+IV Unsupervised learning 144
+10 Clustering and the k-means algorithm 145
+11 EM algorithms 148
+11.1 EM for mixture of Gaussians . . . . . . . . . . . . . . . . . . . 148
+11.2 Jensen’s inequality . . . . . . . . . . . . . . . . . . . . . . . . 151
+11.3 General EM algorithms . . . . . . . . . . . . . . . . . . . . . . 152
+11.3.1 Other interpretation of ELBO . . . . . . . . . . . . . . 158
+11.4 Mixture of Gaussians revisited . . . . . . . . . . . . . . . . . . 158
+11.5 Variational inference and variational auto-encoder (optional
+reading) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 160
+12 Principal components analysis 165
+13 Independent components analysis 171
+13.1 ICA ambiguities . . . . . . . . . . . . . . . . . . . . . . . . . . 172
+13.2 Densities and linear transformations . . . . . . . . . . . . . . . 173
+13.3 ICA algorithm . . . . . . . . . . . . . . . . . . . . . . . . . . . 174
+14 Self-supervised learning and foundation models 177
+14.1 Pretraining and adaptation . . . . . . . . . . . . . . . . . . . . 177
+14.2 Pretraining methods in computer vision . . . . . . . . . . . . . 179
+14.3 Pretrained large language models . . . . . . . . . . . . . . . . 181
+14.3.1 Open up the blackbox of Transformers . . . . . . . . . 183
+14.3.2 Zero-shot learning and in-context learning . . . . . . . 186
+
+CS229 Spring 20223 4
+V Reinforcement Learning and Control 188
+15 Reinforcement learning 189
+15.1 Markov decision processes . . . . . . . . . . . . . . . . . . . . 190
+15.2 Value iteration and policy iteration . . . . . . . . . . . . . . . 192
+15.3 Learning a model for an MDP . . . . . . . . . . . . . . . . . . 194
+15.4 Continuous state MDPs . . . . . . . . . . . . . . . . . . . . . 196
+15.4.1 Discretization . . . . . . . . . . . . . . . . . . . . . . . 196
+15.4.2 Value function approximation . . . . . . . . . . . . . . 199
+15.5 Connections between Policy and Value Iteration (Optional) . . 203
+16 LQR, DDP and LQG 206
+16.1 Finite-horizon MDPs . . . . . . . . . . . . . . . . . . . . . . . 206
+16.2 Linear Quadratic Regulation (LQR) . . . . . . . . . . . . . . . 210
+16.3 From non-linear dynamics to LQR . . . . . . . . . . . . . . . 213
+16.3.1 Linearization of dynamics . . . . . . . . . . . . . . . . 214
+16.3.2 Diﬀerential Dynamic Programming (DDP) . . . . . . . 214
+16.4 Linear Quadratic Gaussian (LQG) . . . . . . . . . . . . . . . . 216
+17 Policy Gradient (REINFORCE) 220
+

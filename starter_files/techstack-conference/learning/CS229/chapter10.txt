@@ -1,0 +1,58 @@
+Part IV
+Unsupervised learning
+144
+
+Chapter 10
+Clustering and the k-means
+algorithm
+In the clustering problem, we are given a training set {x(1), . . . , x(n)}, and
+want to group the data into a few cohesive “clusters.” Here, x(i) ∈ Rd
+as usual; but no labels y(i) are given. So, this is an unsupervised learning
+problem.
+The k-means clustering algorithm is as follows:
+1. Initialize cluster centroids µ1, µ2, . . . , µk ∈ Rd randomly.
+2. Repeat until convergence: {
+For every i, set
+c(i) := arg min
+j
+||x(i) − µj||2.
+For each j, set
+µj :=
+∑n
+i=1 1{c(i) = j}x(i)
+∑n
+i=1 1{c(i) = j} .
+}
+In the algorithm above, k (a parameter of the algorithm) is the number
+of clusters we want to ﬁnd; and the cluster centroids µj represent our current
+guesses for the positions of the centers of the clusters. To initialize the cluster
+centroids (in step 1 of the algorithm above), we could choose k training
+examples randomly, and set the cluster centroids to be equal to the values of
+these k examples. (Other initialization methods are also possible.)
+The inner-loop of the algorithm repeatedly carries out two steps: (i)
+“Assigning” each training example x(i) to the closest cluster centroid µj, and
+145
+
+146
+Figure 10.1: K-means algorithm. Training examples are shown as dots, and
+cluster centroids are shown as crosses. (a) Original dataset. (b) Random ini-
+tial cluster centroids (in this instance, not chosen to be equal to two training
+examples). (c-f) Illustration of running two iterations of k-means. In each
+iteration, we assign each training example to the closest cluster centroid
+(shown by “painting” the training examples the same color as the cluster
+centroid to which is assigned); then we move each cluster centroid to the
+mean of the points assigned to it. (Best viewed in color.) Images courtesy
+Michael Jordan.
+(ii) Moving each cluster centroid µj to the mean of the points assigned to it.
+Figure 10.1 shows an illustration of running k-means.
+Is the k-means algorithm guaranteed to converge? Yes it is, in a certain
+sense. In particular, let us deﬁne the distortion function to be:
+J(c, µ) =
+n∑
+i=1
+||x(i) − µc(i)||2
+Thus, J measures the sum of squared distances between each training exam-
+ple x(i) and the cluster centroid µc(i) to which it has been assigned. It can
+be shown that k-means is exactly coordinate descent on J. Speciﬁcally, the
+inner-loop of k-means repeatedly minimizes J with respect to c while holding
+µ ﬁxed, and then minimizes J with respect to µ while holding c ﬁxed. Thus,
